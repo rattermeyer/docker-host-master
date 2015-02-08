@@ -17,9 +17,11 @@
     - name: run consul
       docker: image=progrium/consul name="consul" hostname="consul" ports="8400:8400, 8500:8500, 8600:53/udp" command="-server -bootstrap -ui-dir /ui" state=running
     - name: run shipyard
-      docker: image=shipyard/deploy volumes="/var/run/docker.sock:/var/run/docker.sock" command="start"
-#    - name: install nsenter
-#      docker: image=jpetazzo/nsenter volumes="/usr/local/bin:/target"
+      command:  docker run --rm -v /var/run/docker.sock:/var/run/docker.sock shipyard/deploy start && touch /home/vagrant/shipyard.done
+      args:
+          creates: /home/vagrant/shipyard.done
+    - name: install nsenter
+      command: docker run --rm -v /usr/local/bin:/target jpetazzo/nsenter creates=/usr/local/bin/docker-enter
     - name: run registrator
       docker: image=progrium/registrator volumes="/var/run/docker.sock:/tmp/docker.sock" command="consul:"
     - name: run docker registry

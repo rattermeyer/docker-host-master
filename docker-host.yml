@@ -1,0 +1,24 @@
+# vim: noai:ts=4:sw=4:expandtab
+---
+# file dev
+- hosts: localhost
+  tasks:
+    - name: Install Docker
+      get_url: url=https://get.docker.com/ubuntu/ dest=/tmp/setup-docker.sh mode=0755
+      register: result
+    - apt: name=python-pip
+    - pip: name=docker-py
+    - shell: /tmp/setup-docker.sh
+      when: result|success
+    - name: Install fig
+      shell: curl -L https://github.com/docker/fig/releases/download/1.0.1/fig-`uname -s`-`uname -m` > /usr/local/bin/fig && chmod +x /usr/local/bin/fig
+      args:
+          creates: /usr/local/bin/fig
+    - name: run consul
+      docker: image=progrium/consul name="consul" hostname="consul" ports="8400:8400, 8500:8500, 8600:53/udp" command="-server -bootstrap -ui-dir /ui" state=running
+    - name: run shipyard
+      docker: image=shipyard/deploy volumes="/var/run/docker.sock:/var/run/docker.sock" command="start"
+#    - name: install nsenter
+#      docker: image=jpetazzo/nsenter volumes="/usr/local/bin:/target"
+    - name: run registrator
+      docker: image=progrium/registrator volumes="/var/run/docker.sock:/tmp/docker.sock" command="consul:"

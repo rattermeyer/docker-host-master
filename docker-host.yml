@@ -23,6 +23,8 @@
     - name: install nsenter
       command: docker run --rm -v /usr/local/bin:/target jpetazzo/nsenter creates=/usr/local/bin/docker-enter
     - name: run registrator
-      docker: image=progrium/registrator volumes="/var/run/docker.sock:/tmp/docker.sock" command="consul:"
+      docker: image=progrium/registrator volumes="/var/run/docker.sock:/tmp/docker.sock" command="consul://10.0.2.15:8500"
     - name: run docker registry
       docker: image=registry ports="5000:5000" volumes="/opt/docker-registry:/tmp/registry"
+    - name: add vagrant to docker group
+      user: name=vagrant groups=docker append=yes

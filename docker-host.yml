@@ -1,4 +1,4 @@
-# vim: noai:ts=4:sw=4:expandtab
+# vim: noai:ts=2:sw=2:expandtab
 ---
 # file dev
 - hosts: localhost
@@ -7,7 +7,7 @@
       apt: name={{item}}
       with_items:
         - linux-image-extra-{{ansible_kernel}}
-		    - aufs-tools
+        - aufs-tools
     - name: Install Docker
       get_url: url=https://get.docker.com/ubuntu/ dest=/tmp/setup-docker.sh mode=0755
       register: result

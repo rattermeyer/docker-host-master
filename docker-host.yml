@@ -13,23 +13,35 @@
       register: result
     - apt: name=python-pip
     - pip: name=docker-py
-    - shell: /tmp/setup-docker.sh
+    - shell: /tmp/setup-docker.sh creates=/usr/bin/docker
+      when: result|success
+    - template: src=templates/docker.j2 dest=/etc/default/docker owner=root group=root mode=0644 backup=yes
+      when: result|success
+    - service: name=docker state=restarted
       when: result|success
     - name: Install fig
       shell: curl -L https://github.com/docker/fig/releases/download/1.0.1/fig-`uname -s`-`uname -m` > /usr/local/bin/fig && chmod +x /usr/local/bin/fig
       args:
           creates: /usr/local/bin/fig
+# restart_policy to add when ansible 1.9 is available
     - name: run consul
-      docker: image=progrium/consul name="consul" hostname="consul" ports="8400:8400, 8500:8500, 8600:53/udp" command="-server -bootstrap -ui-dir /ui" state=running
+      command: docker run -d --name="consul" -h "node1" -p {{facter_ipaddress_eth0}}:8400:8400 -p {{facter_ipaddress_eth0}}:8500:8500 -p {{facter_ipaddress_eth0}}:8600:53/udp -p {{facter_ipaddress_docker0}}:53:53/udp progrium/consul -server -advertise {{facter_ipaddress_eth0}} -bootstrap -ui-dir /ui
+      ignore_errors: yes
     - name: run shipyard
       command:  docker run --rm -v /var/run/docker.sock:/var/run/docker.sock shipyard/deploy start && touch /home/vagrant/shipyard.done
       args:
           creates: /home/vagrant/shipyard.done
+      ignore_errors: yes
     - name: install nsenter
       command: docker run --rm -v /usr/local/bin:/target jpetazzo/nsenter creates=/usr/local/bin/docker-enter
+      ignore_errors: yes
+# restart_policy to add when ansible 1.9 is available
     - name: run registrator
-      docker: image=progrium/registrator volumes="/var/run/docker.sock:/tmp/docker.sock" command="consul://10.0.2.15:8500"
+      docker: image=gliderlabs/registrator hostname="{{facter_hostname}}" volumes="/var/run/docker.sock:/tmp/docker.sock" command="consul://{{ansible_default_ipv4.address}}:8500"
+      ignore_errors: yes
+# restart_policy to add when ansible 1.9 is available
     - name: run docker registry
       docker: image=registry ports="5000:5000" volumes="/opt/docker-registry:/tmp/registry"
+      ignore_errors: yes
     - name: add vagrant to docker group
       user: name=vagrant groups=docker append=yes
